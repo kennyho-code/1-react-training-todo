@@ -1,4 +1,4 @@
-import { useReducer, useState } from 'react';
+import { createContext, useContext, useReducer, useState } from 'react';
 
 let currentId = 3;
 
@@ -8,41 +8,69 @@ const initialTodos = [
   { id: 3, description: 'work out' },
 ];
 
-function reducer(state, action){
-  switch(action.type){
+function reducer(state, action) {
+  switch (action.type) {
     case "add":
-      return [{id: action.id, description: action.description}, ...state];
+      return [{ id: action.id, description: action.description }, ...state];
     case "remove":
       return state.filter((todo) => todo.id !== action.id)
     case "update":
       return state.map((todo) =>
-        todo.id === action.id ? { id: action.id, description: action.description} : todo
+        todo.id === action.id ? { id: action.id, description: action.description } : todo
       )
-
   }
-
-
 }
-function Todo() {
-  // const [todos, setTodos] = useState(initialTodos);
-  const [todos, dispatch] = useReducer(reducer, initialTodos);
 
+const TodoStateContext = createContext(null);
+const TodoDispatchContext = createContext(null);
 
+function useTodos(){
+  const state = useContext(TodoStateContext);
+  return [state]
+}
+
+function useTodosDispatch(){
+  const dispatch = useContext(TodoDispatchContext);
+  return [dispatch]
+}
+
+export function TodoProvider({ children }) {
+  const [state, dispatch] = useReducer(reducer, initialTodos);
 
   return (
-    <div>
-      <p>TODOS: </p>
+    <TodoStateContext.Provider value={state}>
+      <TodoDispatchContext.Provider value={dispatch}>
+      {children}
+      </TodoDispatchContext.Provider>
+    </TodoStateContext.Provider>
+  )
+}
+
+// because [state, dispatch] ...if state is too high it can trigger rerenders..s
+
+
+
+function Todo() {
+  // const [todos, setTodos] = useState(initialTodos);
+  // const [todos, dispatch] = useReducer(reducer, initialTodos);
+  // const [todos, dispatch] = useContext(TodoContext);
+  const [todos] = useTodos();
+  const [dispatch] = useTodosDispatch();
+  return (
       <div>
-        <TodoForm dispatch={dispatch} />
+        <p>TODOS: </p>
+        <div>
+          <TodoForm dispatch={dispatch} />
+        </div>
+        <ul>
+          {todos.map((todo) => (
+            <TodoItem todo={todo} dispatch={dispatch} />
+          ))}
+        </ul>
       </div>
-      <ul>
-        {todos.map((todo) => (
-          <TodoItem todo={todo} dispatch={dispatch} />
-        ))}
-      </ul>
-    </div>
   );
 }
+
 
 function TodoForm({ dispatch }) {
   const [changeDescription, setChangeDescription] = useState('');
@@ -78,7 +106,7 @@ function TodoItem({ todo, dispatch }) {
     e.preventDefault();
     const formData = new FormData(e.target);
     const description = formData.get('description');
-    dispatch({type: 'update', id: todo.id, description });
+    dispatch({ type: 'update', id: todo.id, description });
     setToggleUpdate(false);
   }
 
@@ -99,7 +127,7 @@ function TodoItem({ todo, dispatch }) {
       ) : (
         <p> {todo.description}</p>
       )}
-      <button onClick={() => dispatch({type: 'remove', id: todo.id})}>remove</button>
+      <button onClick={() => dispatch({ type: 'remove', id: todo.id })}>remove</button>
       <button onClick={handleOnClickUpate}>update</button>
     </li>
   );
