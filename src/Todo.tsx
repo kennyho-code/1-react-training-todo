@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useReducer, useState } from 'react';
 
 let currentId = 3;
 
@@ -7,46 +7,49 @@ const initialTodos = [
   { id: 2, description: 'eat breakfast' },
   { id: 3, description: 'work out' },
 ];
-function Todo() {
-  const [todos, setTodos] = useState(initialTodos);
 
-  function add(todo) {
-    setTodos([todo, ...todos]);
-  }
-
-  function remove(id) {
-    setTodos(todos.filter((todo) => todo.id !== id));
-  }
-
-  function update(updatedTodo) {
-    setTodos(
-      todos.map((todo) =>
-        todo.id === updatedTodo.id ? { ...updatedTodo } : todo
+function reducer(state, action){
+  switch(action.type){
+    case "add":
+      return [{id: action.id, description: action.description}, ...state];
+    case "remove":
+      return state.filter((todo) => todo.id !== action.id)
+    case "update":
+      return state.map((todo) =>
+        todo.id === action.id ? { id: action.id, description: action.description} : todo
       )
-    );
+
   }
+
+
+}
+function Todo() {
+  // const [todos, setTodos] = useState(initialTodos);
+  const [todos, dispatch] = useReducer(reducer, initialTodos);
+
+
 
   return (
     <div>
       <p>TODOS: </p>
       <div>
-        <TodoForm add={add} />
+        <TodoForm dispatch={dispatch} />
       </div>
       <ul>
         {todos.map((todo) => (
-          <TodoItem todo={todo} remove={remove} update={update} />
+          <TodoItem todo={todo} dispatch={dispatch} />
         ))}
       </ul>
     </div>
   );
 }
 
-function TodoForm({ add }) {
+function TodoForm({ dispatch }) {
   const [changeDescription, setChangeDescription] = useState('');
   function handleAddTodoSubmit(e) {
     e.preventDefault();
     currentId++;
-    add({ description: changeDescription, id: currentId });
+    dispatch({ type: 'add', description: changeDescription, id: currentId });
   }
   return (
     <div>
@@ -63,7 +66,7 @@ function TodoForm({ add }) {
   );
 }
 
-function TodoItem({ todo, remove, update }) {
+function TodoItem({ todo, dispatch }) {
   const [toggleUpdate, setToggleUpdate] = useState(false);
   const [changedDescription, setChangeDescription] = useState(todo.description);
 
@@ -75,7 +78,7 @@ function TodoItem({ todo, remove, update }) {
     e.preventDefault();
     const formData = new FormData(e.target);
     const description = formData.get('description');
-    update({ id: todo.id, description });
+    dispatch({type: 'update', id: todo.id, description });
     setToggleUpdate(false);
   }
 
@@ -96,7 +99,7 @@ function TodoItem({ todo, remove, update }) {
       ) : (
         <p> {todo.description}</p>
       )}
-      <button onClick={() => remove(todo.id)}>remove</button>
+      <button onClick={() => dispatch({type: 'remove', id: todo.id})}>remove</button>
       <button onClick={handleOnClickUpate}>update</button>
     </li>
   );
